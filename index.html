@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>message</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: black;
+      }
+
+      #container {
+        position: relative;
+        width: 360px;
+        height: 620px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        overflow: hidden;
+      }
+
+      canvas {
+        display: block;
+        width: 360px;
+        height: 620px;
+        background-color: black;
+      }
+
+      #showButton {
+        position: absolute;
+        z-index: 100;
+        padding: 14px 30px;
+        font-size: 18px;
+        border: none;
+        border-radius: 8px;
+        background: linear-gradient(90deg, rgb(83, 228, 192), #08f437);
+        color: white;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      #showButton:hover {
+        background: linear-gradient(90deg, #06f211, rgb(94, 249, 213));
+      }
+
+      #overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 320px;
+        height: 460px;
+        background-color: rgba(0, 0, 0, 0.85);
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgb(255 255 255 / 0.25);
+        z-index: 10;
+        display: none;
+        padding: 20px;
+        color: #eee;
+        font-size: 18px;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+
+      #closeOverlay {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        font-weight: bold;
+        font-size: 24px;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        text-align: center;
+        cursor: pointer;
+        z-index: 20;
+      }
+
+      #pixelSizeControl {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        z-index: 30;
+      }
+
+      #pixelSizeLabel {
+        background: #08f437;
+        color: black;
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 6px;
+        text-align: center;
+        user-select: none;
+      }
+
+      #pixelSizeValueDisplay {
+        width: 40px;
+        height: 28px;
+        background: #333;
+        color: #0f0;
+        font-weight: bold;
+        font-size: 16px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2px 0;
+        font-family: "Courier New", monospace;
+      }
+
+      .adjustBtn {
+        width: 40px;
+        height: 20px;
+        background: #08f437;
+        border: none;
+        color: black;
+        font-weight: bold;
+        font-size: 18px;
+        border-radius: 4px;
+        line-height: 16px;
+        margin: 2px 0;
+        cursor: pointer;
+      }
+
+      audio {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="showButton">Show Message</button>
+    <div id="container" style="display: none">
+      <canvas id="textPortrait" width="360" height="620"></canvas>
+      <div id="overlay">
+        <div id="closeOverlay" title="Close Overlay">&#10005;</div>
+        <div id="overlayText">
+          <h2>HAPPY BIRTHDAY KIM 🎂🥳</h2>
+          <p>
+            Another year older, but still slayin'. You're such a good friend and
+            it is very fun when I'm with you. I kinda lowkey miss the moments
+            when we are stressing out over coding projects that our professors
+            gave us even though our outputs were AI-generated. I just want to
+            tell you that no matter how hard life gets, just keep on fighting
+            and don't hesitate to ask me for help. Once again, Happy birthday
+            and enjoy your day!
+          </p>
+          <p>Lots of love, Raymund</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="pixelSizeControl">
+      <div id="pixelSizeLabel">adjust me to 1</div>
+      <button class="adjustBtn" id="upBtn">&#9650;</button>
+      <div id="pixelSizeValueDisplay">30</div>
+      <button class="adjustBtn" id="downBtn">&#9660;</button>
+    </div>
+
+    <audio id="backgroundAudio" loop>
+      <source src="sound.mp3" type="audio/mpeg" />
+    </audio>
+
+    <script>
+      const canvas = document.getElementById("textPortrait");
+      const ctx = canvas.getContext("2d");
+
+      const container = document.getElementById("container");
+      const showButton = document.getElementById("showButton");
+      const overlay = document.getElementById("overlay");
+      const closeOverlay = document.getElementById("closeOverlay");
+      const pixelSizeControl = document.getElementById("pixelSizeControl");
+      const pixelSizeValueDisplay = document.getElementById(
+        "pixelSizeValueDisplay"
+      );
+      const upBtn = document.getElementById("upBtn");
+      const downBtn = document.getElementById("downBtn");
+      const audio = document.getElementById("backgroundAudio");
+
+      const message = "HappyBirthday";
+      const imageURL = "kim.png";
+
+      let fontSize = 30;
+      let loadedImageData = null;
+
+      // Responsive scaling while keeping 360x620 design
+      function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const cssWidth = 360;
+        const cssHeight = 620;
+
+        canvas.style.width = cssWidth + "px";
+        canvas.style.height = cssHeight + "px";
+
+        canvas.width = cssWidth * dpr;
+        canvas.height = cssHeight * dpr;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+      }
+
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = imageURL;
+      img.onload = () => {
+        const offCanvas = document.createElement("canvas");
+        offCanvas.width = 360;
+        offCanvas.height = 620;
+        const offCtx = offCanvas.getContext("2d");
+        offCtx.drawImage(img, 0, 0, 360, 620);
+        loadedImageData = offCtx.getImageData(0, 0, 360, 620);
+      };
+
+      function drawTextPortrait(fontSizeLocal, textToDraw) {
+        if (!loadedImageData) return;
+
+        const width = 360;
+        const height = 620;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, width, height);
+
+        const data = loadedImageData.data;
+        const lineHeight = Math.round(fontSizeLocal * 1.2);
+        const charWidthEstimate = Math.round(fontSizeLocal * 0.6);
+        const charsPerLine = Math.floor(width / charWidthEstimate);
+        const linesNum = Math.floor(height / lineHeight);
+        const totalCharsNeeded = charsPerLine * linesNum;
+
+        let fullMessage = "";
+        while (fullMessage.length < totalCharsNeeded) {
+          fullMessage += textToDraw + " ";
+        }
+
+        ctx.font = fontSizeLocal + "px Courier New, monospace";
+        ctx.textBaseline = "top";
+
+        let charIndex = 0;
+        for (let yLine = 0; yLine < linesNum; yLine++) {
+          for (let xChar = 0; xChar < charsPerLine; xChar++) {
+            if (charIndex >= fullMessage.length) break;
+            const letter = fullMessage[charIndex];
+            const x = xChar * charWidthEstimate;
+            const y = yLine * lineHeight;
+            const px = Math.floor(x);
+            const py = Math.floor(y + fontSizeLocal / 2);
+            const pixelIdx = (py * 360 + px) * 4;
+            const r = data[pixelIdx];
+            const g = data[pixelIdx + 1];
+            const b = data[pixelIdx + 2];
+            const a = data[pixelIdx + 3];
+            if (a === 0) {
+              charIndex++;
+              continue;
+            }
+            ctx.fillStyle = `rgba(${r},${g},${b},${a / 255})`;
+            ctx.fillText(letter, x, y);
+            charIndex++;
+          }
+        }
+      }
+
+      function drawTextPortraitWithTyping(fontSizeLocal, fullText) {
+        if (!loadedImageData) return;
+
+        let currentIndex = 0;
+        let displayedText = "";
+
+        function type() {
+          if (currentIndex <= fullText.length) {
+            displayedText = fullText.slice(0, currentIndex);
+            drawTextPortrait(fontSizeLocal, displayedText);
+            currentIndex++;
+            setTimeout(type, 2);
+          }
+        }
+        type();
+      }
+
+      showButton.addEventListener("click", () => {
+        showButton.style.display = "none";
+        container.style.display = "block";
+        overlay.style.display = "block";
+        audio.play().catch((e) => {
+          console.warn("Audio play was prevented: ", e);
+        });
+      });
+
+      closeOverlay.addEventListener("click", () => {
+        overlay.style.display = "none";
+        pixelSizeControl.style.display = "flex";
+        drawTextPortraitWithTyping(fontSize, message);
+      });
+
+      upBtn.addEventListener("click", () => {
+        if (fontSize < 60) {
+          fontSize++;
+          pixelSizeValueDisplay.textContent = fontSize;
+          drawTextPortrait(fontSize, message);
+        }
+      });
+
+      downBtn.addEventListener("click", () => {
+        if (fontSize > 1) {
+          fontSize--;
+          pixelSizeValueDisplay.textContent = fontSize;
+          drawTextPortrait(fontSize, message);
+        }
+      });
+
+      pixelSizeValueDisplay.textContent = fontSize;
+    </script>
+  </body>
+</html>
