@@ -21,16 +21,16 @@
 
       #container {
         position: relative;
-        width: 360px;
-        height: 620px;
+        width: 100vw;
+        height: 100vh;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
         overflow: hidden;
       }
 
       canvas {
         display: block;
-        width: 360px;
-        height: 620px;
+        width: 100%;
+        height: 100%;
         background-color: black;
       }
 
@@ -53,10 +53,10 @@
 
       #overlay {
         position: absolute;
-        top: 20px;
-        left: 20px;
-        width: 320px;
-        height: 460px;
+        top: 10%;
+        left: 5%;
+        width: 90%;
+        height: 80%;
         background-color: rgba(0, 0, 0, 0.85);
         border-radius: 10px;
         box-shadow: 0 0 20px rgb(255 255 255 / 0.25);
@@ -145,7 +145,7 @@
   <body>
     <button id="showButton">Show Message</button>
     <div id="container" style="display: none">
-      <canvas id="textPortrait" width="360" height="620"></canvas>
+      <canvas id="textPortrait"></canvas>
       <div id="overlay">
         <div id="closeOverlay" title="Close Overlay">&#10005;</div>
         <div id="overlayText">
@@ -178,15 +178,12 @@
     <script>
       const canvas = document.getElementById("textPortrait");
       const ctx = canvas.getContext("2d");
-
       const container = document.getElementById("container");
       const showButton = document.getElementById("showButton");
       const overlay = document.getElementById("overlay");
       const closeOverlay = document.getElementById("closeOverlay");
       const pixelSizeControl = document.getElementById("pixelSizeControl");
-      const pixelSizeValueDisplay = document.getElementById(
-        "pixelSizeValueDisplay"
-      );
+      const pixelSizeValueDisplay = document.getElementById("pixelSizeValueDisplay");
       const upBtn = document.getElementById("upBtn");
       const downBtn = document.getElementById("downBtn");
       const audio = document.getElementById("backgroundAudio");
@@ -197,19 +194,13 @@
       let fontSize = 30;
       let loadedImageData = null;
 
-      // Responsive scaling while keeping 360x620 design
       function resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
-        const cssWidth = 360;
-        const cssHeight = 620;
-
-        canvas.style.width = cssWidth + "px";
-        canvas.style.height = cssHeight + "px";
-
-        canvas.width = cssWidth * dpr;
-        canvas.height = cssHeight * dpr;
-
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + "px";
+        canvas.style.height = window.innerHeight + "px";
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset any previous transforms
         ctx.scale(dpr, dpr);
       }
 
@@ -221,18 +212,18 @@
       img.src = imageURL;
       img.onload = () => {
         const offCanvas = document.createElement("canvas");
-        offCanvas.width = 360;
-        offCanvas.height = 620;
+        offCanvas.width = canvas.width;
+        offCanvas.height = canvas.height;
         const offCtx = offCanvas.getContext("2d");
-        offCtx.drawImage(img, 0, 0, 360, 620);
-        loadedImageData = offCtx.getImageData(0, 0, 360, 620);
+        offCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        loadedImageData = offCtx.getImageData(0, 0, canvas.width, canvas.height);
       };
 
       function drawTextPortrait(fontSizeLocal, textToDraw) {
         if (!loadedImageData) return;
 
-        const width = 360;
-        const height = 620;
+        const width = canvas.width / (window.devicePixelRatio || 1);
+        const height = canvas.height / (window.devicePixelRatio || 1);
 
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = "#000";
@@ -262,7 +253,7 @@
             const y = yLine * lineHeight;
             const px = Math.floor(x);
             const py = Math.floor(y + fontSizeLocal / 2);
-            const pixelIdx = (py * 360 + px) * 4;
+            const pixelIdx = (py * canvas.width + px) * 4;
             const r = data[pixelIdx];
             const g = data[pixelIdx + 1];
             const b = data[pixelIdx + 2];
